@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
-from rnnForYawrate import MyRNN
+#from rnnForYawrate import MyRNN
 from torch.optim.lr_scheduler import StepLR # add LR Schedule  20 oct.
 
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     data_file_learning = 'training.txt' 
     data_file_t = 'test.txt' 
     custom_dataset_training = CustomDataset(data_file_learning)
-    custom_dataset_valid = CustomDataset(data_file_t) # wait to use another data_file
+    custom_dataset_valid = CustomDataset(data_file_t) 
 
     # para
     learning_rate = 1e-3
@@ -155,9 +155,7 @@ if __name__ == "__main__":
     )
     
     if 1:
-        model = NeuralNetwork().to(device)
-    else:
-        model =MyRNN().to(device) 
+        model = NeuralNetwork().to(device) 
     #model info debug
     # print(f"Using {device} device")
     # print(f"Model structure: {model}\n\n")

@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-import trainingModel
+
 from trainingModel import NeuralNetwork
 from trainingModel import CustomDataset
 from rnnForYawrate import MyRNN
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 # msg.egoEgoStatus.steerWheelAngle: 0.15293440222740173
 # msg.egoEgoStatus.steerWheelAngleRate: 0.0
 # msg.egoEgoStatus.frontWheelAngle: 0.010865672491490841
-    if 1:
+    if 0:
         data_test=[0.04120563715696335,13.793313980102539,0.15484023094177246,0.7746685743331909,0.15446069836616516,
         0.0,0.010974112898111343,8.793074607849121,-0.7578315138816833]
         with torch.no_grad():
