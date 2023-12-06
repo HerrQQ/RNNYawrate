@@ -84,38 +84,41 @@ class MyRNN(nn.Module):
         last_output = out[:, -1, :]#last_output(16,32)   
         last_output = last_output.unsqueeze(1)# let (16,32)to(16,1,32)     
         # Feed into linear layer and apply activation
-        temp4 = self.linear_32(last_output)#temp4 (16,1,32)
+        #temp4 = self.linear_32(last_output)#temp4 (16,1,32)
         # #temp4 = temp4.unsqueeze(2)
         # temp4 = temp4.view(-1, 32) 
         # temp41 = self.batch_norm_layer(temp4)
         # temp4 = temp41.view(batch_size,1, 32)  
         #temp4 = temp41.squeeze(2)
-        temp5 = self.relu(temp4)#temp5(16,1,32)  
+ 
         # 应用 Dropout 层
-        temp5 = self.dropout(temp5)
+        temp5 = self.dropout(last_output)
         output =self.linear_out(temp5)#output(16,1,7)
         return output,hidden_prev
 #####################training model define#################################
 def train_RNN(dataloader,model,loss_fn,optimizer,device):
     #hidden_prev init
     size = len(dataloader.dataset)
+    hidden_prev = None
     # Set the model to training mode - important for batch normalization and dropout layers
     model.train()
     for batch, (X, y) in enumerate(dataloader):
-        # print(X.shape, y.shape)
+        # print(X.shape, y.shape) 16 5 9 ;16 1 7
         # print (batch)
         X = X.to(device)  # 将数据移到设备上
-        y = y.to(device) 
-        batch_size=X.size(0)
-        hidden_prev = torch.zeros(1, batch_size, 32)
-        
-        hidden_prev = hidden_prev.to(device)  
+        y = y.to(device)
+        batch_size = X.size(0)
+        hidden_prev = torch.zeros(1, batch_size, 32).to(device) if hidden_prev is None else hidden_prev
+        # Detach hidden_prev from the computational graph
+        hidden_prev = hidden_prev.detach() if hidden_prev is not None else None
+
         output, _ = model(X, hidden_prev)
-        #hidden_prev = hidden_prev.detach()
+        # hidden_prev = hidden_prev.detach()
         loss = loss_fn(output, y)
         model.zero_grad()
         loss.backward()
         optimizer.step()
+
         if batch % 50 == 0:# set print frequenz
             loss, current = loss.item(), (batch + 1) * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
@@ -128,7 +131,6 @@ def test_RNN(dataloader, model, loss_fn,device):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     test_loss, correct = 0, 0
-    hidden_prev = torch.zeros(1, 16, 32)
     # # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
@@ -136,7 +138,7 @@ def test_RNN(dataloader, model, loss_fn,device):
             X = X.to(device)  # 将数据移到设备上
             y = y.to(device) 
             batch_size=X.size(0)
-            hidden_prev = torch.zeros(1, batch_size, 32)
+            hidden_prev = torch.zeros(1, batch_size, 32,dtype=X.dtype)
             hidden_prev = hidden_prev.to(device)  
             pred,_ = model(X,hidden_prev)
             test_loss += loss_fn(pred, y).item()
@@ -166,19 +168,10 @@ if __name__ == "__main__":
     batch_size = 16
     epochs = 20000
     # data loader
-    data_loader_training = DataLoader(custom_dataset_training, batch_size=batch_size, shuffle=True,drop_last=True)
+    #data_loader_training = DataLoader(custom_dataset_training, batch_size=batch_size, shuffle=True,drop_last=True)
 
-    data_loader_valid = DataLoader(custom_dataset_valid, batch_size=batch_size,shuffle=True, drop_last=True)
-    for data_batch, label_batch in data_loader_training:
-        print(f"Shape of data_batch: {data_batch.shape}")#(16,5,9)
+    #data_loader_valid = DataLoader(custom_dataset_valid, batch_size=batch_size,shuffle=True, drop_last=True)
 
-        for data, label in zip(data_batch, label_batch):
-            print(f"Shape of data: {data.shape}")# (5,9)
-            print(f"Shape of label: {label.shape} {label.dtype}")#(1,7)
-            # for dat in data:
-            #     print(f"data: {dat}")
-            break
-        break
     #add device 
     device = torch.device(
         "cuda" if torch.cuda.is_available() else "cpu"
@@ -194,6 +187,16 @@ if __name__ == "__main__":
  # 将数据加载器移动到设备
     data_loader_training = DataLoader(custom_dataset_training, batch_size=batch_size, shuffle=True, drop_last=True, pin_memory=True)
     data_loader_valid = DataLoader(custom_dataset_valid, batch_size=batch_size, shuffle=True, drop_last=True, pin_memory=True)
+    for data_batch, label_batch in data_loader_training:
+        print(f"Shape of data_batch: {data_batch.shape}")#(16,5,9)
+
+        for data, label in zip(data_batch, label_batch):
+            print(f"Shape of data: {data.shape}")# (5,9)
+            print(f"Shape of label: {label.shape} {label.dtype}")#(1,7)
+            # for dat in data:
+            #     print(f"data: {dat}")
+            break
+        break 
     # #hidden_prev init
     # hidden_prev = torch.zeros(1, 16, 32)
     for iter in range(epochs):
