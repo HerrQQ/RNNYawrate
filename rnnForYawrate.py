@@ -128,21 +128,27 @@ def train_RNN(dataloader,model,loss_fn,optimizer,device):
 def test_RNN(dataloader, model, loss_fn,device):
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     model.eval()
-    size = len(dataloader.dataset)
-    num_batches = len(dataloader)
+    size = len(dataloader.dataset) # before batch operation
+  
+    num_batches = len(dataloader) #after batch operation
+    #print(f"size: {size} and num_batches {num_batches}")
     test_loss, correct = 0, 0
     # # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
-         for X, y in dataloader:
+         for batch, (X, y) in enumerate(dataloader):
             X = X.to(device)  # 将数据移到设备上
             y = y.to(device) 
             batch_size=X.size(0)
             hidden_prev = torch.zeros(1, batch_size, 32,dtype=X.dtype)
             hidden_prev = hidden_prev.to(device)  
             pred,_ = model(X,hidden_prev)
-            test_loss += loss_fn(pred, y).item()
+            loss_test=loss_fn(pred, y)
+            test_loss += loss_test.item()
     #       #correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+            if batch % 100 == 0:# set print frequenz
+                loss, current = loss_test.item(), (batch + 1) * len(X)
+                print(f"test loss: {loss_test:>7f}  [{current:>5d}/{size:>5d}]")
 
     test_loss /= num_batches
     print(f"Avg loss: {test_loss:>8f} \n")
@@ -166,7 +172,7 @@ if __name__ == "__main__":
     # para
     learning_rate = 1e-3
     batch_size = 16
-    epochs = 20000
+    epochs = 50
     # data loader
     #data_loader_training = DataLoader(custom_dataset_training, batch_size=batch_size, shuffle=True,drop_last=True)
 
