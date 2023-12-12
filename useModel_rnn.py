@@ -5,6 +5,7 @@ import os
 from rnnForYawrate import MyRNN
 from rnnForYawrate import CustomDataset_RNN
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.tensorboard import SummaryWriter
 # main process        
 if __name__ == "__main__":
 
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     custom_dataset_inference = CustomDataset_RNN(data_file)
     batch_size=16
     # 数据加载器
-    data_loader_inference = DataLoader(custom_dataset_inference, batch_size=batch_size,shuffle=True, drop_last=True)
+    data_loader_inference = DataLoader(custom_dataset_inference, batch_size=batch_size,shuffle=True, drop_last=True,pin_memory=True)
     device = (
         "cuda"
         if torch.cuda.is_available()
@@ -26,7 +27,7 @@ if __name__ == "__main__":
         else "cpu"
     )
     model_f=MyRNN().to(device)
-    model_f.load_state_dict(torch.load('VehicalStateperML_RNN_epochs_5000_BS:128.pth'))
+    model_f.load_state_dict(torch.load('VehicalStateperML_RNN_epochs_2000_BS:64.pth'))
     model_f.eval()
 
     if 1:
@@ -71,11 +72,39 @@ if __name__ == "__main__":
             hidden_prev =hidden_prev.to(device)
             output,_ = model_f(stacked_data,hidden_prev)  # 使用模型进行预测
         print(output) 
-    # else:
+    else:
     #multi data inference model
-
-        # loss_fn = nn.MSELoss()
-        # trainingModel.test_loop(data_loader_inference, model_f, loss_fn)
+        log_dir='runs/RNNdemo_usemodel_f1'
+        writer = SummaryWriter (log_dir=f'{log_dir}')
+        hidden_prev = torch.zeros(1, batch_size, 32)
+        num_batches=len(data_loader_inference)
+        test_loss,total_loss=0.0,0.0
+        loss_flag= False 
+        loss_fn = nn.MSELoss()
+        with torch.no_grad():
+            for batch, (X, y) in enumerate(data_loader_inference):
+                X = X.to(device)  # 将数据移到设备上
+                y = y.to(device) 
+                batch_size=X.size(0)
+                hidden_prev = torch.zeros(1, batch_size, 32,dtype=X.dtype)
+                hidden_prev = hidden_prev.to(device)             
+                pred,_ = model_f(X,hidden_prev)
+                loss_test=loss_fn(pred, y)
+                test_loss += loss_test.item()   
+                total_loss += loss_test.item()     
+                hidden_prev =hidden_prev.to(device)
+                cycle2Out=50
+                if batch % cycle2Out == 0:# set print frequenz
+                    if (False==loss_flag):
+                        loss_flag=True
+                    else:# set print frequenz
+                        #current = (batch + 1) * len(X)
+                        #print(f"average test loss of {cycle2Out} batches: {(test_loss/cycle2Out):>7f}  [{current:>5d}/{size:>5d}]")
+                        writer.add_scalar(f'average evaluation loss of every {cycle2Out} batches :', test_loss/cycle2Out ,batch+1)
+                        test_loss=0.0
+        print("_________________________________________")
+        print(f"total average evaluation loss {total_loss/num_batches:>8f} \n")
+ 
 
 # RNN single data inference model
 # msg.egoEgoStatus.yawRate: 0.03987893462181091

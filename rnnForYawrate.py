@@ -208,10 +208,10 @@ if __name__ == "__main__":
     #epochs = 50
 
     # 设置TensorBoard saving path 
-    log_dir='runs/RNNdemo_experiment_13'
+    log_dir='runs/RNNdemo_experiment_f1'
     # using dynamic Para now 1208
     batch_size_list = [64,128]
-    epochs_list=[200]
+    epochs_list=[2000]
     for batch_size in batch_size_list:
         for epochs in epochs_list:
             # path setting
